@@ -1,0 +1,93 @@
+import cv2
+import numpy as np
+import tensorflow as tf
+#from tensorflow.keras.models import load_model
+
+# Load the model and class names
+model = tf.keras.models.load_model('quickdraw_neuralnet.h5')
+
+with open('class_names.txt', 'r') as file:
+    class_names = file.read().splitlines()
+
+cap = cv2.VideoCapture(0)
+
+lower_marker = np.array([100, 60, 60])
+upper_marker = np.array([140, 255, 255])
+
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
+color = colors[0]
+
+canvas = None
+
+block_top, block_bottom = 10, 50
+block_width = 100
+blocks = [(i * block_width, (i + 1) * block_width) for i in range(6)]
+
+prev_center = None  # Variable to store the previous position of the marker
+
+def preprocess_canvas(canvas):
+    gray_canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
+    resized_canvas = cv2.resize(gray_canvas, (28, 28))
+    normalized_canvas = resized_canvas / 255.0
+    input_canvas = normalized_canvas.reshape(1, 28, 28, 1)
+    return input_canvas
+
+while True:
+    
+    ret, frame = cap.read()
+    frame = cv2.flip(frame, 1)
+
+    if canvas is None:
+        canvas = np.zeros_like(frame)
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    marker_mask = cv2.inRange(hsv, lower_marker, upper_marker)
+    contours, _ = cv2.findContours(marker_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    for i, (left, right) in enumerate(blocks):
+        cv2.rectangle(frame, (left, block_top), (right, block_bottom), colors[i], -1)
+
+    if contours:
+        cnt = max(contours, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(cnt)
+        center = (int(x), int(y))
+
+        if block_top <= y <= block_bottom:
+            for i, (left, right) in enumerate(blocks):
+                if left <= x <= right:
+                    color = colors[i]
+                    break
+
+        if y > block_bottom:
+            if prev_center is not None:
+                for thickness in range(1, 5):
+                    cv2.line(canvas, prev_center, center, (color[0] + 20, color[1] + 20, color[2] + 20), thickness)
+                    cv2.line(canvas, prev_center, center, color, thickness=1)
+            prev_center = center
+
+    else:
+        prev_center = None
+
+    frame = cv2.add(frame, canvas)
+
+    cv2.imshow("IMAGINARI", frame)
+    key = cv2.waitKey(1)
+
+    if key & 0xFF == ord('q'):
+        break
+
+    if key & 0xFF == ord('s'):
+        filename = 'painting.png'
+        cv2.imwrite(filename, canvas)
+        print(f"Painting saved as {filename}")
+
+    if key & 0xFF == ord('p'):
+        input_canvas = preprocess_canvas(canvas)
+        predictions = model.predict(input_canvas)
+        predicted_class = class_names[np.argmax(predictions)]
+        print(f"Predicted class: {predicted_class}")
+        cv2.putText(frame, f"Prediction: {predicted_class}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+cap.release()
+cv2.destroyAllWindows()
