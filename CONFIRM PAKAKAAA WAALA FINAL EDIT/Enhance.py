@@ -3,9 +3,8 @@ import numpy as np
 
 cap = cv2.VideoCapture(0)
 
-lower_marker = np.array([80, 100,100])
+lower_marker = np.array([80, 100, 100])
 upper_marker = np.array([100, 255, 255])
-
 
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)] 
 color = colors[0]
@@ -20,6 +19,7 @@ blocks = [(i * block_width, (i + 1) * block_width) for i in range(7)]
 prev_center = None  
 draw = True  
 
+# Function to detect shape
 def detect_shape(cnt):
     shape = ""
     area = cv2.contourArea(cnt)
@@ -41,7 +41,6 @@ def detect_shape(cnt):
     return shape
 
 while True:
-    
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
 
@@ -53,6 +52,9 @@ while True:
     marker_mask = cv2.inRange(hsv, lower_marker, upper_marker)
     contours, _ = cv2.findContours(marker_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # Initialize shape as an empty string
+    shape = ""
+
     for i, (left, right) in enumerate(blocks):
         cv2.rectangle(frame, (left, block_top), (right, block_bottom), colors[i], -1)
 
@@ -61,7 +63,7 @@ while True:
         ((x, y), radius) = cv2.minEnclosingCircle(cnt)
         center = (int(x), int(y))
 
-  
+        # Detect shape
         shape = detect_shape(cnt)
 
         if block_top <= y <= block_bottom:
@@ -73,22 +75,19 @@ while True:
 
         if y > block_bottom and draw:
             if prev_center is not None:
-               
                 history.append(canvas.copy())
                 
                 if color == (255, 255, 255): 
                     cv2.line(canvas, prev_center, center, (0, 0, 0), thickness=10) 
                 else:
-                   
                     for thickness in range(1, 5):
                         cv2.line(canvas, prev_center, center, color, thickness)
 
             prev_center = center
-
     else:
         prev_center = None
 
-    
+    # Display the detected shape if any
     if shape:
         cv2.putText(frame, shape, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
