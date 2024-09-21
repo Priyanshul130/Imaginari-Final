@@ -6,23 +6,21 @@ cap = cv2.VideoCapture(0)
 lower_marker = np.array([80, 100,100])
 upper_marker = np.array([100, 255, 255])
 
-# Colors: added white as eraser
-colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)]  # White color for eraser
+
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)] 
 color = colors[0]
 
 canvas = None
-history = []  # History to store canvas for undo functionality
+history = []  
 
 block_top, block_bottom = 10, 50
 block_width = 100
-blocks = [(i * block_width, (i + 1) * block_width) for i in range(7)]  # Added eraser block
+blocks = [(i * block_width, (i + 1) * block_width) for i in range(7)]  
 
-prev_center = None  # Variable to store the previous position of the marker
-shape = ""  # Variable to store the recognized shape
-draw = True  # Flag to track if drawing should be done
+prev_center = None  
+draw = True  
 
 def detect_shape(cnt):
-    """Detect the shape of a contour."""
     shape = ""
     area = cv2.contourArea(cnt)
     perimeter = cv2.arcLength(cnt, True)
@@ -63,25 +61,25 @@ while True:
         ((x, y), radius) = cv2.minEnclosingCircle(cnt)
         center = (int(x), int(y))
 
-        # Shape recognition
+  
         shape = detect_shape(cnt)
 
         if block_top <= y <= block_bottom:
             for i, (left, right) in enumerate(blocks):
                 if left <= x <= right:
                     color = colors[i]
-                    draw = False if i == 6 else True  # If white (eraser) selected, set draw to False
+                    draw = False if i == 6 else True  
                     break
 
         if y > block_bottom and draw:
             if prev_center is not None:
-                # Save the canvas state for undo
+               
                 history.append(canvas.copy())
                 
-                if color == (255, 255, 255):  # Eraser functionality
-                    cv2.line(canvas, prev_center, center, (0, 0, 0), thickness=10)  # Eraser thickness is larger
+                if color == (255, 255, 255): 
+                    cv2.line(canvas, prev_center, center, (0, 0, 0), thickness=10) 
                 else:
-                    # Smoother drawing lines
+                   
                     for thickness in range(1, 5):
                         cv2.line(canvas, prev_center, center, color, thickness)
 
@@ -90,7 +88,7 @@ while True:
     else:
         prev_center = None
 
-    # Display the recognized shape
+    
     if shape:
         cv2.putText(frame, shape, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
@@ -102,7 +100,7 @@ while True:
     if key & 0xFF == ord('q'):
         break
 
-    if key & 0xFF == ord('s'):  # Press 's' to save the painting
+    if key & 0xFF == ord('s'): 
         filename = 'painting.png'
         cv2.imwrite(filename, canvas)
         print(f"Painting saved as {filename}")
