@@ -3,8 +3,8 @@ import numpy as np
 
 cap = cv2.VideoCapture(0)
 
-lower_marker = np.array([100, 60, 60])
-upper_marker = np.array([140, 255, 255])
+lower_marker = np.array([50, 50, 50])
+upper_marker = np.array([150, 150, 150])
 
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
 color = colors[0]
@@ -16,9 +16,8 @@ block_width = 100
 blocks = [(i * block_width, (i + 1) * block_width) for i in range(6)]
 
 prev_center = None  # Variable to store the previous position of the marker
-
 while True:
-
+    
     ret, frame = cap.read()
     frame = cv2.flip(frame, 1)
 
